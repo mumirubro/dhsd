@@ -313,13 +313,27 @@ async def enforce_access_control(update: Update, context: ContextTypes.DEFAULT_T
                 pass
         raise ApplicationHandlerStop
     
+    #decision = "allowed"
     if is_admin(user_id, username):
+        logger.info(f"Access granted: Admin {user_id}")
         return
     
     authorized_groups = get_authorized_groups()
     
+    # Check for core commands first to allow them in any chat (except banned users)
+    if update.message and update.message.text:
+        text = update.message.text.lower()
+        if text.startswith('/start') or text.startswith('/register') or text.startswith('/redeem'):
+            logger.info(f"Access granted: Core command {user_id}")
+            return
+    elif update.callback_query:
+        # Always allow callback queries for navigation/registration
+        logger.info(f"Access granted: Callback query {user_id}")
+        return
+
     if chat_type == 'private':
         if is_premium_user(user_id):
+            logger.info(f"Access granted: Premium user {user_id}")
             return
         
         groups_list = ""
@@ -367,7 +381,11 @@ async def enforce_access_control(update: Update, context: ContextTypes.DEFAULT_T
     
     elif chat_type in ['group', 'supergroup']:
         if is_group_authorized(chat_id):
+            logger.info(f"Access granted: Authorized group {chat_id}")
             return
+        
+        # Even for commands like /start, block in unauthorized groups
+        # unless it's an admin (already handled above)
         
         groups_list = ""
         if authorized_groups:
@@ -440,7 +458,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    username = update.effective_user.username or "Unknown"
+    username = update.effective_user.username or update.effective_user.first_name or "Unknown"
     
     if is_registered(user_id):
         await update.message.reply_text(
@@ -6473,9 +6491,14 @@ def main():
     application.add_handler(CommandHandler("addsx", addsx_command))
     application.add_handler(CommandHandler("addpp", addpp_command))
 
-    # Remove redundant handlers if they exist
+    # Core Commands
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("register", register))
+    application.add_handler(CommandHandler("cmd", cmd))
     application.add_handler(CommandHandler("cmds", cmd))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'^\.cmd(s)?$'), cmd))
+    application.add_handler(CallbackQueryHandler(button_callback))
+
+    # Remove redundant handlers if they exist
     application.add_handler(CommandHandler("bin", bin_check))
     application.add_handler(CommandHandler("mbin", mbin_check))
     application.add_handler(CommandHandler("vbv", vbv_command))
