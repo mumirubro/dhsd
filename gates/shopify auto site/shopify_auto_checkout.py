@@ -1141,11 +1141,17 @@ class ShopifyAuto:
                             # Check if these are legitimate Shopify responses that should go to challenge.txt
                             challenge_errors = ['DELIVERY_DELIVERY_LINE_DETAIL_CHANGED', 'DELIVERY_OUT_OF_STOCK_AT_ORIGIN_LOCATION',
                                               'REQUIRED_ARTIFACTS_UNAVAILABLE', 'PAYMENTS_PAYMENT_FLEXIBILITY_TERMS_ID_MISMATCH',
-                                              'PAYMENTS_CREDIT_CARD_BASE_EXPIRED']
+                                              'PAYMENTS_CREDIT_CARD_BASE_EXPIRED', 'BUYER_IDENTITY_CURRENCY_NOT_SUPPORTED_BY_SHOP',
+                                              'DELIVERY_ADDRESS2_REQUIRED', 'DELIVERY_NO_DELIVERY_STRATEGY_AVAILABLE',
+                                              'PAYMENTS_PROPOSED_GATEWAY_UNAVAILABLE', 'PAYMENTS_CREDIT_CARD_BRAND_NOT_SUPPORTED',
+                                              'TAX_NEW_TAX_MUST_BE_ACCEPTED', 'PAYMENTS_METHOD']
+                            
                             if any(e in challenge_errors for e in non_pending_errors):
-                                print(f"⏳ Legitimate Shopify challenge response: {non_pending_errors}")
+                                print(f"🚫 Dead site detected via response: {non_pending_errors}")
                                 error_msg = ', '.join(non_pending_errors)
-                                return f"🔐 {error_msg}"  # Will be caught by challenge.txt categorization
+                                # Permanently ban the site so it's never used again
+                                GLOBAL_STATE.ban_site_permanently(site_url, f"Dead site response: {error_msg}")
+                                return f"❌ DEAD SITE BAN: {error_msg}"
                             else:
                                 error_msg = ', '.join(non_pending_errors)
                                 return f"❌ Payment Rejected: {error_msg}"
@@ -1773,17 +1779,25 @@ async def process_card_worker(card_index, card, use_rotation, site, file_handles
                    "404" in result or "422" in result or "429" in result or "400" in result or "500" in result or "503" in result or
                    "Connection" in result or "Timeout" in result or "timeout" in result or
                    "SHIPPING UNAVAILABLE" in result or
-                   "CAPTCHA_REQUIRED" in result)
+                   "CAPTCHA_REQUIRED" in result or
+                   "DEAD SITE BAN" in result or
+                   "DELIVERY_DELIVERY_LINE_DETAIL_CHANGED" in result or
+                   "DELIVERY_OUT_OF_STOCK_AT_ORIGIN_LOCATION" in result or
+                   "REQUIRED_ARTIFACTS_UNAVAILABLE" in result or
+                   "PAYMENTS_PAYMENT_FLEXIBILITY_TERMS_ID_MISMATCH" in result or
+                   "PAYMENTS_CREDIT_CARD_BASE_EXPIRED" in result or
+                   "BUYER_IDENTITY_CURRENCY_NOT_SUPPORTED_BY_SHOP" in result or
+                   "DELIVERY_ADDRESS2_REQUIRED" in result or
+                   "DELIVERY_NO_DELIVERY_STRATEGY_AVAILABLE" in result or
+                   "PAYMENTS_PROPOSED_GATEWAY_UNAVAILABLE" in result or
+                   "PAYMENTS_CREDIT_CARD_BRAND_NOT_SUPPORTED" in result or
+                   "TAX_NEW_TAX_MUST_BE_ACCEPTED" in result or
+                   "PAYMENTS_METHOD" in result)
         
         # Check if response is a LEGITIMATE Shopify response (including challenges)
         is_legitimate = ("DECLINED" in result or "CHARGED" in result or 
                         "ORDER PLACED" in result or "APPROVED" in result or
-                        "LIVE" in result or "WAITING_PENDING_TERMS" in result or
-                        "DELIVERY_DELIVERY_LINE_DETAIL_CHANGED" in result or
-                        "DELIVERY_OUT_OF_STOCK_AT_ORIGIN_LOCATION" in result or
-                        "REQUIRED_ARTIFACTS_UNAVAILABLE" in result or
-                        "PAYMENTS_PAYMENT_FLEXIBILITY_TERMS_ID_MISMATCH" in result or
-                        "PAYMENTS_CREDIT_CARD_BASE_EXPIRED" in result)
+                        "LIVE" in result or "WAITING_PENDING_TERMS" in result)
         
         if is_dead_site:
             # Site is DEAD - ban it permanently

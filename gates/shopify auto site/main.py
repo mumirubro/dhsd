@@ -32,8 +32,19 @@ async def get_vbv_info(cc_number):
         pass
     return 'N/A'
 
-async def is_admin(user_id):
-    return True
+ADMIN_OWNER_ID = 6124719858
+ADMIN_OWNER_USERNAME = 'MUMIRU_01'
+ADMIN_IDS = [ADMIN_OWNER_ID, 1805944073]
+
+async def is_admin(user_id: int, username: str = None) -> bool:
+    """Check if user is admin/owner"""
+    if user_id == ADMIN_OWNER_ID:
+        return True
+    if username and username.lower() == ADMIN_OWNER_USERNAME.lower():
+        return True
+    if user_id in ADMIN_IDS:
+        return True
+    return False
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🛒 Shopify Card Checker Bot\n/sx <card|mm|yy|cvv> - Check a single card")

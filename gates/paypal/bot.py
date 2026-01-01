@@ -16,15 +16,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Admin configuration
-ADMIN_ID = 1805944073
-ADMIN_USERNAME = "mumiru"
+ADMIN_OWNER_ID = 6124719858
+ADMIN_OWNER_USERNAME = 'MUMIRU_01'
+ADMIN_IDS = [ADMIN_OWNER_ID, 1805944073]
 
 def is_admin(user_id: int, username: str = None) -> bool:
-    """Check if user is admin"""
-    if user_id == ADMIN_ID:
+    """Check if user is admin/owner"""
+    if user_id == ADMIN_OWNER_ID:
         return True
-    if username and username.lower() == ADMIN_USERNAME.lower():
+    if username and username.lower() == ADMIN_OWNER_USERNAME.lower():
+        return True
+    if user_id in ADMIN_IDS:
         return True
     return False
 

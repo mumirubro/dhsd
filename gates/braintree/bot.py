@@ -17,7 +17,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-ADMIN_ID = 1805944073
+ADMIN_OWNER_ID = 6124719858
+ADMIN_OWNER_USERNAME = 'MUMIRU_01'
+ADMIN_IDS = [ADMIN_OWNER_ID, 1805944073]
 
 DATA_FILE = "bot_data.json"
 
@@ -44,9 +46,15 @@ def save_data(data):
 
 bot_data = load_data()
 
-def is_admin(user_id, username=None):
-    """Check if user is admin"""
-    return user_id == ADMIN_ID or (username and username.lower() == "mumiru")
+def is_admin(user_id: int, username: str = None) -> bool:
+    """Check if user is admin/owner"""
+    if user_id == ADMIN_OWNER_ID:
+        return True
+    if username and username.lower() == ADMIN_OWNER_USERNAME.lower():
+        return True
+    if user_id in ADMIN_IDS:
+        return True
+    return False
 
 def validate_card_format(card_data):
     """Validate card format: cardnumber|mm|yy|cvv"""
