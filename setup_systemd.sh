@@ -34,6 +34,11 @@ echo ""
 # Create service file
 echo "📝 Creating systemd service file..."
 
+PYTHON_EXEC="$CURRENT_DIR/venv/bin/python3"
+if [ ! -f "$PYTHON_EXEC" ]; then
+    PYTHON_EXEC="/usr/bin/python3"
+fi
+
 cat > toji-bot.service << EOF
 [Unit]
 Description=TOJI CHK Telegram Bot
@@ -44,7 +49,7 @@ Type=simple
 User=$CURRENT_USER
 WorkingDirectory=$CURRENT_DIR
 EnvironmentFile=$CURRENT_DIR/.env
-ExecStart=/usr/bin/python3 $CURRENT_DIR/main.py
+ExecStart=$PYTHON_EXEC $CURRENT_DIR/main.py
 Restart=always
 RestartSec=10
 StandardOutput=append:/var/log/toji-bot.log

@@ -2,7 +2,11 @@
 
 # Get current path and python path
 WORKING_DIR=$(pwd)
-PYTHON_PATH=$(which python3)
+PYTHON_PATH="$WORKING_DIR/venv/bin/python3"
+
+if [ ! -f "$PYTHON_PATH" ]; then
+    PYTHON_PATH=$(which python3)
+fi
 
 echo "Detected Working Directory: $WORKING_DIR"
 echo "Detected Python Path: $PYTHON_PATH"
