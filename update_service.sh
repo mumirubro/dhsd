@@ -21,6 +21,7 @@ After=network.target
 Type=simple
 User=$(whoami)
 WorkingDirectory=$WORKING_DIR
+EnvironmentFile=$WORKING_DIR/.env
 ExecStart=$PYTHON_PATH $WORKING_DIR/main.py
 Restart=always
 RestartSec=10
