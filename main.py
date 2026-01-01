@@ -193,9 +193,21 @@ if not BOT_TOKEN:
     logger.error("Or create a .env file with: BOT_TOKEN=your_bot_token")
     sys.exit(1)
 
-ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'mumiru')
-ADMIN_IDS = [6124719858]
+ADMIN_OWNER_ID = 6124719858
+ADMIN_OWNER_USERNAME = 'MUMIRU_01'
+ADMIN_IDS = [ADMIN_OWNER_ID, 1805944073]
 
+def is_admin(user_id: int, username: str = None) -> bool:
+    """Check if user is admin/owner"""
+    if user_id == ADMIN_OWNER_ID:
+        return True
+    if username and username.lower() == ADMIN_OWNER_USERNAME.lower():
+        return True
+    if user_id in ADMIN_IDS:
+        return True
+    return False
+
+# Global Settings
 USERS_FILE = 'users.json'
 VIDEO_FILE_ID = None
 
@@ -270,21 +282,18 @@ def register_user(user_id, username):
     }
     save_users(users)
 
-def is_admin(user_id: int, username: str = None) -> bool:
-    """Check if user is admin"""
-    if user_id in ADMIN_IDS:
-        return True
-    if username and username.lower() == ADMIN_USERNAME.lower():
-        return True
-    return False
-
 # Task workers configuration
 MAX_WORKERS = 25
-ADMIN_WORKERS = 200
+PREMIUM_WORKERS = 60
+ADMIN_WORKERS = 160
 
-def get_max_workers(user_id):
-    username = None # This would need to be passed or fetched if we want to check by username too
-    return ADMIN_WORKERS if is_admin(user_id) else MAX_WORKERS
+def get_max_workers(user_id: int) -> int:
+    """Get max workers based on admin/premium status"""
+    if is_admin(user_id):
+        return ADMIN_WORKERS
+    if is_premium_user(user_id):
+        return PREMIUM_WORKERS
+    return MAX_WORKERS
 
 async def enforce_access_control(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Middleware to enforce group-only access with premium/admin exceptions"""
@@ -4244,16 +4253,25 @@ async def key_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         
         admin_username = update.effective_user.username or update.effective_user.first_name
-        key_code = generate_premium_key(quantity, days, admin_username)
+        
+        keys_list = []
+        for _ in range(quantity):
+            key_code = generate_premium_key(1, days, admin_username)
+            keys_list.append(key_code)
+        
+        keys_text = "\n".join([f"`{k}`" for k in keys_list])
+        
+        # Clean markdown characters from admin_username to prevent parse errors
+        clean_admin = admin_username.replace('_', '\\_').replace('*', '\\*').replace('`', '\\`').replace('[', '\\[')
         
         await update.message.reply_text(
-            "🔑 **Key created successfully**\n\n"
+            f"🔑 **{quantity} Keys Created Successfully**\n\n"
             "———•————•—\n"
-            f"🔑 Key: `{key_code}`\n"
+            f"{keys_text}\n"
             "—○——○——○——○—\n"
-            f"📋 Quantity: {quantity}\n"
+            f"📋 Quantity per key: 1\n"
             f"⌛ Expires In: {days} days\n"
-            f"👤 Key Created By: @{admin_username}\n"
+            f"👤 Key Created By: @{clean_admin}\n"
             f"🎁 Created At: {datetime.now().strftime('%m/%d/%Y %I:%M %p')}\n\n"
             "☆🤔 How to redeem?\n\n"
             "🥂 Use: /redeem <key> to activate premium",

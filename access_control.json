@@ -30,6 +30,24 @@
       "used_by": [
         "6124719858"
       ]
+    },
+    "premium_FLowurkRP3Ob2v6g": {
+      "code": "premium_FLowurkRP3Ob2v6g",
+      "quantity": 1,
+      "days_valid": 1,
+      "created_by": "MUMIRU_01",
+      "created_at": "01/01/2026 05:55 AM",
+      "remaining_uses": 1,
+      "used_by": []
+    },
+    "premium_z2XAE1CnXDTe72MA": {
+      "code": "premium_z2XAE1CnXDTe72MA",
+      "quantity": 1,
+      "days_valid": 1,
+      "created_by": "MUMIRU_01",
+      "created_at": "01/01/2026 05:55 AM",
+      "remaining_uses": 1,
+      "used_by": []
     }
   },
   "premium_users": {}
