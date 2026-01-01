@@ -524,9 +524,19 @@ class CrunchyrollBot:
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text))
         self.application.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
     
-    def is_admin(self, user_id: int) -> bool:
-        """Check if user is admin"""
-        return user_id == ADMIN_ID
+    def is_admin(self, user_id: int, username: str = None) -> bool:
+        """Check if user is admin/owner"""
+        ADMIN_OWNER_ID = 6124719858
+        ADMIN_OWNER_USERNAME = 'MUMIRU_01'
+        ADMIN_IDS = [ADMIN_OWNER_ID, 1805944073]
+        
+        if user_id == ADMIN_OWNER_ID:
+            return True
+        if username and username.lower() == ADMIN_OWNER_USERNAME.lower():
+            return True
+        if user_id in ADMIN_IDS:
+            return True
+        return False
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Send help message"""
