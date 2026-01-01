@@ -4461,12 +4461,14 @@ async def groups_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for idx, (group_id, group_info) in enumerate(authorized_groups.items(), 1):
         invite_link = group_info.get('invite_link', 'N/A')
-        added_by = group_info.get('added_by', 'Unknown')
+        # Escape markdown special characters in link if necessary, but keep it readable
+        safe_link = invite_link.replace('_', '\\_').replace('*', '\\*').replace('`', '\\`')
+        added_by = group_info.get('added_by', 'Unknown').replace('_', '\\_')
         added_at = group_info.get('added_at', 'N/A')
         
         groups_list += f"🏢 Group {idx}\n"
         groups_list += f"├ 🆔 ID: `{group_id}`\n"
-        groups_list += f"├ 🔗 Link: {invite_link}\n"
+        groups_list += f"├ 🔗 Link: {safe_link}\n"
         groups_list += f"├ 👤 Added by: @{added_by}\n"
         groups_list += f"└ 📅 Date: {added_at}\n\n"
     
@@ -4542,7 +4544,8 @@ async def redeem_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"🎉 **Premium Activated!**\n\n"
             f"{message}\n\n"
-            "✨ You can now use the bot in private messages!"
+            "✨ You can now use the bot in private messages!",
+            parse_mode='Markdown'
         )
     else:
         await update.message.reply_text(message)

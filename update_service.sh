@@ -25,8 +25,8 @@ EnvironmentFile=$WORKING_DIR/.env
 ExecStart=$PYTHON_PATH $WORKING_DIR/main.py
 Restart=always
 RestartSec=10
-StandardOutput=append:$WORKING_DIR/bot.log
-StandardError=append:$WORKING_DIR/bot-error.log
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

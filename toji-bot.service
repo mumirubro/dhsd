@@ -4,13 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-User=damncj
-WorkingDirectory=/home/damncj/dhsd
-ExecStart=/home/damncj/dhsd/venv/bin/python3 /home/damncj/dhsd/main.py
+User=runner
+WorkingDirectory=/home/runner/workspace
+EnvironmentFile=/home/runner/workspace/.env
+ExecStart=/home/runner/workspace/venv/bin/python3 /home/runner/workspace/main.py
 Restart=always
 RestartSec=10
-StandardOutput=append:/var/log/toji-bot.log
-StandardError=append:/var/log/toji-bot-error.log
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
